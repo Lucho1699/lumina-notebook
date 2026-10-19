@@ -1,0 +1,283 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --page-bg: #fdfbf7;
+    --page-line: #e3ded5;
+    --page-margin: #f48b8b;
+    --spine-color: #3b281c;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    background-color: #12151c;
+    color: #1f2937;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+/* Paper textures */
+.paper-ruled {
+  background-color: #fdfcf7;
+  background-image: 
+    linear-gradient(90deg, transparent 48px, #fca5a5 49px, #fca5a5 50px, transparent 51px),
+    linear-gradient(#e5e0d8 1px, transparent 1px);
+  background-size: 100% 100%, 100% 28px;
+  background-position: 0 0, 0 32px;
+}
+
+.paper-grid {
+  background-color: #fdfcf7;
+  background-image: 
+    linear-gradient(#e6e1d6 1px, transparent 1px),
+    linear-gradient(90deg, #e6e1d6 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.paper-dotted {
+  background-color: #fdfcf7;
+  background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+
+.paper-blank {
+  background-color: #fdfcf7;
+  background-image: linear-gradient(180deg, #faf7f2 0%, #f7f3ec 100%);
+}
+
+.paper-vintage {
+  background-color: #f7eedb;
+  background-image: 
+    radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.4) 0%, rgba(200,165,120,0.2) 100%),
+    linear-gradient(#dfd1ba 1px, transparent 1px);
+  background-size: 100% 100%, 100% 28px;
+}
+
+.paper-dark {
+  background-color: #1e222d;
+  color: #e2e8f0;
+  background-image: 
+    linear-gradient(#2d3345 1px, transparent 1px);
+  background-size: 100% 28px;
+}
+
+/* Notebook Cover & Spine 3D effects */
+.notebook-book-shadow {
+  box-shadow: 
+    -15px 0 30px rgba(0, 0, 0, 0.45),
+    0 25px 50px -12px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.page-shadow-left {
+  box-shadow: inset -18px 0 24px -10px rgba(0, 0, 0, 0.22);
+}
+
+.page-shadow-right {
+  box-shadow: inset 18px 0 24px -10px rgba(0, 0, 0, 0.22);
+}
+
+.leather-texture {
+  background-color: #2b1f1d;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03) 0%, transparent 60%),
+    repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 2px, transparent 2px, transparent 4px);
+}
+
+/* 3D Page Flip Physics & Curl Keyframes */
+@keyframes pageTurnForward {
+  0% {
+    transform: perspective(2000px) rotateY(0deg);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  40% {
+    box-shadow: -15px 20px 35px rgba(0, 0, 0, 0.35);
+  }
+  100% {
+    transform: perspective(2000px) rotateY(-180deg);
+    box-shadow: -2px 4px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+@keyframes pageTurnBackward {
+  0% {
+    transform: perspective(2000px) rotateY(-180deg);
+    box-shadow: -2px 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  40% {
+    box-shadow: 15px 20px 35px rgba(0, 0, 0, 0.35);
+  }
+  100% {
+    transform: perspective(2000px) rotateY(0deg);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@keyframes cornerFlutter {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-3px, -3px) rotate(4deg);
+  }
+}
+
+.animate-flip-forward {
+  animation: pageTurnForward 0.42s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+  transform-origin: left center !important;
+  transform-style: preserve-3d;
+  z-index: 40 !important;
+}
+
+.animate-flip-backward {
+  animation: pageTurnBackward 0.42s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+  transform-origin: right center !important;
+  transform-style: preserve-3d;
+  z-index: 40 !important;
+}
+
+/* 3D Realistic Corner Curl / Dog-ear */
+.corner-curl-br {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, transparent 50%, rgba(217, 119, 6, 0.25) 50%, rgba(254, 243, 199, 0.95) 65%, #fef3c7 100%);
+  border-top-left-radius: 12px;
+  box-shadow: -4px -4px 10px rgba(0, 0, 0, 0.18);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  z-index: 30;
+}
+
+.corner-curl-br:hover {
+  width: 58px;
+  height: 58px;
+  transform: translate(-2px, -2px) scale(1.08);
+  box-shadow: -8px -8px 16px rgba(0, 0, 0, 0.28);
+}
+
+.corner-curl-bl {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(225deg, transparent 50%, rgba(217, 119, 6, 0.25) 50%, rgba(254, 243, 199, 0.95) 65%, #fef3c7 100%);
+  border-top-right-radius: 12px;
+  box-shadow: 4px -4px 10px rgba(0, 0, 0, 0.18);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  z-index: 30;
+}
+
+.corner-curl-bl:hover {
+  width: 58px;
+  height: 58px;
+  transform: translate(2px, -2px) scale(1.08);
+  box-shadow: 8px -8px 16px rgba(0, 0, 0, 0.28);
+}
+
+/* Central spine paper fold crease shadow */
+.spine-crease-left {
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.22) 0%, rgba(0, 0, 0, 0.08) 8%, transparent 22%);
+}
+
+.spine-crease-right {
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.22) 0%, rgba(0, 0, 0, 0.08) 8%, transparent 22%);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}
+
+/* Note typography, editable surfaces and callouts */
+.page-note-editable,
+[contenteditable="true"],
+.select-text {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+.page-note-editable[data-empty="true"]:before,
+.page-note-editable:empty:before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+  font-style: italic;
+  pointer-events: none;
+  display: block;
+}
+
+.page-note-editable:focus {
+  outline: none;
+}
+
+.page-note-editable blockquote {
+  margin: 8px 0;
+  padding: 10px 14px;
+  background-color: rgba(254, 243, 199, 0.65);
+  border-left: 4px solid #f59e0b;
+  border-radius: 6px;
+  color: #78350f;
+}
+
+.page-note-editable mark {
+  background-color: #fef08a;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.page-note-editable h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: #1e293b;
+}
+
+.page-note-editable h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  margin-bottom: 0.4rem;
+  color: #334155;
+}
+
+.page-note-editable ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin: 0.4rem 0;
+}
+
+.page-note-editable ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin: 0.4rem 0;
+}
+
+.page-note-editable p {
+  margin: 0.35rem 0;
+}
