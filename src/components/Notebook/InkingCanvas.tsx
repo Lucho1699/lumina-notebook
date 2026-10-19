@@ -14,7 +14,6 @@ interface InkingCanvasProps {
   isCurrentPage: boolean;
 }
 
-// Normalized virtual coordinate system base
 const VIRTUAL_WIDTH = 800;
 const VIRTUAL_HEIGHT = 1000;
 
@@ -31,19 +30,17 @@ export const InkingCanvas: React.FC<InkingCanvasProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentStroke, setCurrentStroke] = useState<DrawingStroke | null>(null);
+  const [isStylusActive, setIsStylusActive] = useState(false);
 
-  // Redraw all strokes onto canvas using virtual coordinate scaling
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Get actual backing resolution
     const rect = canvas.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
 
-    // Handle high-DPI displays
     const dpr = window.devicePixelRatio || 1;
     if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
       canvas.width = Math.round(rect.width * dpr);
@@ -51,18 +48,15 @@ export const InkingCanvas: React.FC<InkingCanvasProps> = ({
     }
 
     ctx.save();
-    // Reset transform & clear
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Scale from virtual coordinates (800x1000) to device pixel canvas
     const scaleX = canvas.width / VIRTUAL_WIDTH;
     const scaleY = canvas.height / VIRTUAL_HEIGHT;
     ctx.scale(scaleX, scaleY);
 
     const allStrokes = currentStroke ? [...drawings, currentStroke] : drawings;
 
-    // Render strokes
     allStrokes.forEach((stroke) => {
       if (stroke.points.length === 0) return;
 
@@ -89,12 +83,10 @@ export const InkingCanvas: React.FC<InkingCanvasProps> = ({
       ctx.moveTo(p0.x, p0.y);
 
       if (stroke.points.length === 1) {
-        // Draw dot
         ctx.lineTo(p0.x + 0.1, p0.y + 0.1);
       } else if (stroke.points.length === 2) {
         ctx.lineTo(stroke.points[1].x, stroke.points[1].y);
       } else {
-        // Smooth quadratic bezier curves
         for (let i = 1; i < stroke.points.length - 1; i++) {
           const xc = (stroke.points[i].x + stroke.points[i + 1].x) / 2;
           const yc = (stroke.points[i].y + stroke.points[i + 1].y) / 2;
@@ -111,7 +103,6 @@ export const InkingCanvas: React.FC<InkingCanvasProps> = ({
     ctx.restore();
   }, [drawings, currentStroke]);
 
-  // Adjust canvas resolution dynamically on container resize
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -128,7 +119,6 @@ export const InkingCanvas: React.FC<InkingCanvasProps> = ({
     redrawCanvas();
   }, [redrawCanvas]);
 
-  // Map client pointer coordinates into virtual coordinate space (800 x 1000)
   const getVirtualCoords = (e: React.PointerEvent<HTMLCanvasElement>): DrawingPoint => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -147,6 +137,9 @@ export const InkingCanvas: React.FC<InkingCanvasProps> = ({
 
     const coords = getVirtualCoords(e);
     setIsDrawing(true);
+    if (e.pointerType === 'pen') {
+      setIsStylusActive(true);
+    }
 
     const newStroke: DrawingStroke = {
       id: `stroke-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -191,19 +184,29 @@ export const InkingCanvas: React.FC<InkingCanvasProps> = ({
   };
 
   return (
-    <canvas
-      ref={canvasRef}
-      className={`absolute inset-0 z-20 w-full h-full ${
-        activeTool === 'select'
-          ? 'pointer-events-none'
-          : activeTool === 'eraser'
-          ? 'cursor-cell pointer-events-auto touch-none'
-          : 'cursor-crosshair pointer-events-auto touch-none'
-      }`}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        className={`absolute inset-0 z-20 w-full h-full ${
+          activeTool === 'select'
+            ? 'pointer-events-none'
+            : activeTool === 'eraser'
+            ? 'cursor-cell pointer-events-auto touch-none'
+            : 'cursor-crosshair pointer-events-auto touch-none'
+        }`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      />
+
+      {/* Subtle Stylus / Active Pen Indicator */}
+      {isStylusActive && isCurrentPage && activeTool !== 'select' && (
+        <div className="absolute top-3 left-3 z-30 pointer-events-none flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/85 border border-amber-400/50 text-[11px] text-amber-300 font-mono shadow-md backdrop-blur-xs select-none">
+          <span>🖊️</span>
+          <span>Lápiz óptico activo</span>
+        </div>
+      )}
+    </>
   );
 };
