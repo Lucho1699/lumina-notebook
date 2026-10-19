@@ -33,6 +33,15 @@ if (fs.existsSync(DIST_PATH)) {
   app.use(express.static(DIST_PATH));
 }
 
+// Health check endpoint for Render / monitoring
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'Lumina Notebook Production Auth Server',
+    time: new Date().toISOString(),
+  });
+});
+
 // List of pleasant avatar colors
 const AVATAR_COLORS = [
   '#f59e0b', // amber
@@ -43,17 +52,6 @@ const AVATAR_COLORS = [
   '#06b6d4', // cyan
   '#f97316', // orange
 ];
-
-/**
- * Health check endpoint
- */
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'Lumina Notebook Local Auth Server',
-    time: new Date().toISOString(),
-  });
-});
 
 /**
  * Register endpoint: POST /api/auth/register
@@ -237,13 +235,16 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
   }
 });
 
-// Fallback for Single Page Application client-side routing
-if (fs.existsSync(DIST_PATH)) {
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.join(DIST_PATH, 'index.html'));
-  });
-}
+// Fallback for Single Page Application client-side routing (Express 5 compatible)
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api')) {
+    const indexPath = path.join(DIST_PATH, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
+  }
+  next();
+});
 
 // Start listening if run directly
 export const server = app.listen(PORT, () => {
