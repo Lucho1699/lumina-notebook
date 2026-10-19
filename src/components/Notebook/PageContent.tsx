@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { NotebookPage, DrawingStroke, StickerItem } from '../../types/notebook';
 import { InkingCanvas } from './InkingCanvas';
 import { StickerLayer } from './StickerLayer';
+import { recognizeHandwritingStrokes } from '../../utils/handwritingRecognition';
+import { soundEngine } from '../../utils/soundEngine';
+import { triggerHapticFeedback } from '../../utils/haptics';
 import {
   Presentation,
   Edit3,
@@ -47,8 +50,37 @@ export const PageContent: React.FC<PageContentProps> = ({
   onFlipPrev,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isConvertingHandwriting, setIsConvertingHandwriting] = useState(false);
+  const [recognizedToast, setRecognizedToast] = useState<{ text: string } | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const prevPageIdRef = useRef(page.id);
+
+  // Quick handwriting-to-text conversion from stylus / pen canvas
+  const handleQuickConvertHandwriting = async () => {
+    if (!page.drawings || page.drawings.length === 0 || isConvertingHandwriting) return;
+    setIsConvertingHandwriting(true);
+    try {
+      const result = await recognizeHandwritingStrokes(page.drawings, 'es');
+      if (result.success && result.text) {
+        soundEngine.playSuccessChime();
+        triggerHapticFeedback('medium');
+
+        const textSnippet = `<p><strong>✍️ ${result.text}</strong></p>`;
+        const currentContent = page.content || '';
+        const updatedContent = currentContent.trim() ? `${currentContent}<br/>${textSnippet}` : textSnippet;
+
+        onUpdatePage({ content: updatedContent });
+        setRecognizedToast({ text: result.text });
+      } else {
+        alert(result.error || 'No se pudo interpretar la escritura a mano.');
+      }
+    } catch (err) {
+      console.error('Error al convertir escritura a mano:', err);
+      alert('Error al procesar la escritura manuscrita.');
+    } finally {
+      setIsConvertingHandwriting(false);
+    }
+  };
 
   // Sync editor content with current page without causing cursor jumps during active typing
   useEffect(() => {
@@ -469,6 +501,58 @@ export const PageContent: React.FC<PageContentProps> = ({
         onUpdateStickers={handleStickersUpdate}
         isInteractive={activeTool === 'select'}
       />
+
+      {/* Floating Stylus / Handwriting to Text Quick Convert Trigger */}
+      {isCurrentPage && page.drawings && page.drawings.length > 0 && activeTool !== 'select' && (
+        <div className="absolute top-16 right-6 z-30 animate-fade-in">
+          <button
+            type="button"
+            onClick={handleQuickConvertHandwriting}
+            disabled={isConvertingHandwriting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-950 text-amber-300 hover:text-amber-200 border border-amber-500/50 shadow-xl backdrop-blur-md text-xs font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+            title="Convertir tus trazos dibujados a texto digital"
+          >
+            <Sparkles className={`w-3.5 h-3.5 text-amber-400 ${isConvertingHandwriting ? 'animate-spin' : ''}`} />
+            <span>{isConvertingHandwriting ? 'Reconociendo...' : '🪄 Convertir a texto'}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Recognition Result Banner Toast */}
+      {recognizedToast && (
+        <div className="absolute bottom-6 left-6 right-6 z-40 bg-slate-900/95 border border-amber-500/60 rounded-xl p-3 text-slate-100 shadow-2xl backdrop-blur-md flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+              ✍️
+            </div>
+            <div>
+              <div className="text-xs font-bold text-amber-300">¡Escritura convertida a texto!</div>
+              <div className="text-xs text-slate-300 italic font-mono max-w-sm truncate">
+                &quot;{recognizedToast.text}&quot;
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                onUpdatePage({ drawings: [] });
+                setRecognizedToast(null);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 cursor-pointer font-medium transition-colors"
+            >
+              Borrar tinta
+            </button>
+            <button
+              type="button"
+              onClick={() => setRecognizedToast(null)}
+              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 cursor-pointer font-medium transition-colors"
+            >
+              Mantener ambos
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Corner 3D Page Curl Flip Triggers */}
       {(side === 'right' || side === 'single') && onFlipNext && (

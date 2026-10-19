@@ -19,6 +19,7 @@ import {
   Undo2,
   RotateCcw,
   Layers,
+  Sparkles,
 } from 'lucide-react';
 import type { PaperTexture, Notebook } from '../../types/notebook';
 import { soundEngine } from '../../utils/soundEngine';
@@ -56,6 +57,9 @@ interface NotebookToolbarProps {
   activeNotebookId?: string;
   onSelectNotebook?: (id: string) => void;
   onOpenLibrary?: () => void;
+  onConvertToText?: () => void;
+  isRecognizingHandwriting?: boolean;
+  hasDrawings?: boolean;
 }
 
 const PEN_COLORS = [
@@ -115,6 +119,9 @@ export const NotebookToolbar: React.FC<NotebookToolbarProps> = ({
   activeNotebookId,
   onSelectNotebook,
   onOpenLibrary,
+  onConvertToText,
+  isRecognizingHandwriting = false,
+  hasDrawings = false,
 }) => {
   return (
     <div className="w-full bg-slate-900/95 border-b border-slate-800 px-3 md:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-slate-200 backdrop-blur-md shadow-md z-40">
@@ -348,6 +355,32 @@ export const NotebookToolbar: React.FC<NotebookToolbarProps> = ({
             title="Limpiar todos los dibujos de la hoja"
           >
             <RotateCcw className="w-4 h-4" />
+          </button>
+        )}
+
+        {/* Convert Handwriting / Stylus to Text */}
+        {onConvertToText && (
+          <button
+            type="button"
+            onClick={onConvertToText}
+            disabled={!hasDrawings || isRecognizingHandwriting}
+            className={`p-2 rounded-lg transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+              isRecognizingHandwriting
+                ? 'bg-amber-500/30 text-amber-300 animate-pulse border border-amber-500/50'
+                : hasDrawings
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/60 disabled:opacity-30 disabled:hover:bg-transparent'
+            }`}
+            title={
+              hasDrawings
+                ? 'Convertir tus trazos manuscritos con lápiz/pluma a texto digital'
+                : 'Dibuja o escribe con tu lápiz primero para convertir a texto'
+            }
+          >
+            <Sparkles className={`w-4 h-4 ${isRecognizingHandwriting ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">
+              {isRecognizingHandwriting ? 'Reconociendo...' : 'A Texto'}
+            </span>
           </button>
         )}
 
