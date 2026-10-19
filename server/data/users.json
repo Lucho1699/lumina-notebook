@@ -1,0 +1,11 @@
+[
+  {
+    "id": "usr-1792375287686-5c53c",
+    "name": "Camila Torres",
+    "email": "camila@lumina.edu",
+    "passwordHash": "$2a$10$xyz...",
+    "avatarColor": "#10b981",
+    "createdAt": 1792375287686,
+    "updatedAt": 1792375287686
+  }
+]
