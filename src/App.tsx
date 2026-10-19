@@ -27,6 +27,8 @@ import {
 } from './utils/storage';
 import { exportNotebookToPDF, exportDataBackup } from './utils/exportUtils';
 import { soundEngine } from './utils/soundEngine';
+import { triggerHapticFeedback } from './utils/haptics';
+import { recognizeHandwritingStrokes } from './utils/handwritingRecognition';
 
 import { Header } from './components/UI/Header';
 import { SettingsModal } from './components/UI/SettingsModal';
@@ -79,6 +81,7 @@ export const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [isRecognizingHandwriting, setIsRecognizingHandwriting] = useState(false);
 
   // Sync sound engine enabled state
   useEffect(() => {
@@ -577,6 +580,44 @@ export const App: React.FC = () => {
     exportNotebookToPDF(pages, activeNotebook?.title || 'Lumina Notebook');
   };
 
+  // Convert handwritten strokes from stylus / pen to digital text
+  const handleConvertHandwritingToText = async () => {
+    const currentPage = pages[currentPageIndex];
+    if (!currentPage || !currentPage.drawings || currentPage.drawings.length === 0) {
+      alert('Primero dibuja o escribe algo con tu lápiz o pluma sobre la hoja.');
+      return;
+    }
+
+    setIsRecognizingHandwriting(true);
+    try {
+      const result = await recognizeHandwritingStrokes(currentPage.drawings, 'es');
+      if (result.success && result.text) {
+        soundEngine.playSuccessChime();
+        triggerHapticFeedback('medium');
+
+        const existingContent = currentPage.content || '';
+        const textSnippet = `<p><strong>✍️ ${result.text}</strong></p>`;
+        const updatedContent = existingContent.trim() ? `${existingContent}<br/>${textSnippet}` : textSnippet;
+
+        const clearStrokes = window.confirm(
+          `✨ ¡Texto reconocido con éxito!\n\n"${result.text}"\n\n¿Deseas borrar los trazos de tinta originales para dejar solo el texto digital en la hoja?`
+        );
+
+        handleUpdatePage(currentPage.id, {
+          content: updatedContent,
+          drawings: clearStrokes ? [] : currentPage.drawings,
+        });
+      } else {
+        alert(result.error || 'No se pudo interpretar el texto de los trazos.');
+      }
+    } catch (err) {
+      console.error('Error in handwriting recognition:', err);
+      alert('Ocurrió un error al procesar el reconocimiento de escritura.');
+    } finally {
+      setIsRecognizingHandwriting(false);
+    }
+  };
+
   const handleExportNotebookPDF = (notebookToExport?: Notebook) => {
     const target = notebookToExport || activeNotebook;
     if (target) {
@@ -700,6 +741,9 @@ export const App: React.FC = () => {
               activeNotebookId={activeNotebookId}
               onSelectNotebook={handleSelectNotebook}
               onOpenLibrary={() => setActiveTab('library')}
+              onConvertToText={handleConvertHandwritingToText}
+              isRecognizingHandwriting={isRecognizingHandwriting}
+              hasDrawings={(currentPage?.drawings?.length ?? 0) > 0}
             />
 
             {/* 3D Interactive Notebook Spread */}
